@@ -4,6 +4,7 @@ from werkzeug.utils import secure_filename
 from flask import send_from_directory
 import numpy as np
 from PIL import Image
+from icecream import ic
 
 
 UPLOAD_FOLDER = './uploads'
@@ -27,14 +28,17 @@ def add_grid(filename, num):
     grid_width = 4
     grid = np.zeros([y, x, 4], dtype=np.float64)
 
-    x_lines = len(list(range(step, x - grid_width, step)))
-    y_lines = len(list(range(step, y - grid_width, step)))
+    _, x_lines, _ = img[:, step:x - 2 * grid_width - 1:step, 0:3].shape
+    y_lines, _, _ = img[step:y - 2 * grid_width - 1:step, :, 0:3].shape
+
     for i in range(-grid_width + 1, grid_width):
-        img[:, step + i:x - grid_width - 1:step, 0:3] = 10 * np.ones([y, x_lines, 3])
-        img[step + i:y - grid_width - 1:step, :, 0:3] = 10 * np.ones([y_lines, x, 3])
-        grid[:, step + i:x - grid_width - 1:step, :] = \
+        img[:, step + i:x - 2 * grid_width - 1:step, 0:3] = \
+            0.5 * img[:, step + i:x - 2 * grid_width - 1:step, 0:3] + 0.5 * 20 * np.ones([y, x_lines, 3])
+        img[step + i:y - 2 * grid_width - 1:step, :, 0:3] =  \
+            0.5 * img[step + i:y - 2 * grid_width - 1:step, :, 0:3] + 0.5 * 20 * np.ones([y_lines, x, 3])
+        grid[:, step + i:x - 2 * grid_width - 1:step, :] = \
             np.concatenate([20 * np.ones([y, x_lines, 3]), 255 * np.ones([y, x_lines, 1])], 2)
-        grid[step + i:y - grid_width - 1:step, :, :] = \
+        grid[step + i:y - 2 * grid_width - 1:step, :, :] = \
             np.concatenate([20 * np.ones([y_lines, x, 3]), 255 * np.ones([y_lines, x, 1])], 2)
 
     img = 255.0 * (img / 255.0)**(1 / 3.0)
@@ -45,8 +49,8 @@ def add_grid(filename, num):
 
     grided_filename = "grided.png"
     grid_filename = "grid.png"
-    Image.fromarray(img).save(os.path.join("templates", "processed", grided_filename))
-    Image.fromarray(grid).save(os.path.join("templates", "processed", grid_filename))
+    Image.fromarray(img).save(os.path.join("templates", "processed", grided_filename), quality=95)
+    Image.fromarray(grid).save(os.path.join("templates", "processed", grid_filename), quality=95)
 
 
 def allowed_file(filename):
