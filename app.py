@@ -28,7 +28,7 @@ def add_grid(filename, num):
         y_remainder = y - step * (y_grid_num + 1)
     else:
         step = int(y / num)
-        x_grid_num = math.roof(x / step) - 1
+        x_grid_num = math.ceil(x / step) - 1
         y_grid_num = num - 1
         x_remainder = x - step * (x_grid_num + 1)
         y_remainder = y % num
