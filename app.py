@@ -4,7 +4,6 @@ from werkzeug.utils import secure_filename
 from flask import send_from_directory
 import numpy as np
 from PIL import Image
-from icecream import ic
 import math
 
 
@@ -49,9 +48,6 @@ def add_grid(filename, num):
         [20 * np.ones([y, grid_width, 3]), 255 * np.ones([y, grid_width, 1])], 2)
     y_border_for_grid_img = np.concatenate(
         [20 * np.ones([grid_width, x, 3]), 255 * np.ones([grid_width, x, 1])], 2)
-
-    # _, x_grid_num, _ = img[:, step:x - 2 * grid_width - 1:step, 0:3].shape
-    # y_grid_num, _, _ = img[step:y - 2 * grid_width - 1:step, :, 0:3].shape
 
     for i in range(-grid_width + 1, grid_width):
         img[:, x_grid_base_pos + i, 0:3] = 0.5 * img[:, x_grid_base_pos + i, 0:3] + 0.5 * x_grid_over_img
