@@ -77,6 +77,7 @@ def add_grid(filename, num):
     grid_filename = "grid.png"
     Image.fromarray(img).save(os.path.join("templates", "processed", grided_filename), quality=95)
     Image.fromarray(grid).save(os.path.join("templates", "processed", grid_filename), quality=95)
+    os.remove(filename)
 
 
 def allowed_file(filename):
