@@ -5,6 +5,7 @@ from flask import send_from_directory
 import numpy as np
 from PIL import Image
 from icecream import ic
+import math
 
 
 UPLOAD_FOLDER = './uploads'
@@ -19,27 +20,52 @@ def add_grid(filename, num):
     img = np.array(Image.open(filename), dtype=np.float64)
 
     y, x, _ = img.shape
-    x_step = int(x / num)
-    y_step = int(y / num)
-    if x_step < y_step:
-        step = x_step
+    if x < y:
+        step = int(x / num)
+        x_grid_num = num - 1
+        y_grid_num = math.ceil(y / step) - 1
+        x_remainder = x % num
+        y_remainder = y - step * (y_grid_num + 1)
     else:
-        step = y_step
+        step = int(y / num)
+        x_grid_num = math.roof(x / step) - 1
+        y_grid_num = num - 1
+        x_remainder = x - step * (x_grid_num + 1)
+        y_remainder = y % num
+
     grid_width = 4
     grid = np.zeros([y, x, 4], dtype=np.float64)
 
-    _, x_lines, _ = img[:, step:x - 2 * grid_width - 1:step, 0:3].shape
-    y_lines, _, _ = img[step:y - 2 * grid_width - 1:step, :, 0:3].shape
+    x_grid_base_pos = step * np.array(list(range(1, x_grid_num + 1))) + int(x_remainder / 2)
+    y_grid_base_pos = step * np.array(list(range(1, y_grid_num + 1))) + int(y_remainder / 2)
+
+    x_grid_over_img = 20 * np.ones([y, x_grid_num, 3])
+    y_grid_over_img = 20 * np.ones([y_grid_num, x, 3])
+    x_grid_line_for_grid_img = np.concatenate([20 * np.ones([y, x_grid_num, 3]), 255 * np.ones([y, x_grid_num, 1])], 2)
+    y_grid_line_for_grid_img = np.concatenate([20 * np.ones([y_grid_num, x, 3]), 255 * np.ones([y_grid_num, x, 1])], 2)
+    x_border_over_img = 5 * np.ones([y, grid_width, 3])
+    y_border_over_img = 5 * np.ones([grid_width, x, 3])
+    x_border_for_grid_img = np.concatenate(
+        [20 * np.ones([y, grid_width, 3]), 255 * np.ones([y, grid_width, 1])], 2)
+    y_border_for_grid_img = np.concatenate(
+        [20 * np.ones([grid_width, x, 3]), 255 * np.ones([grid_width, x, 1])], 2)
+
+    # _, x_grid_num, _ = img[:, step:x - 2 * grid_width - 1:step, 0:3].shape
+    # y_grid_num, _, _ = img[step:y - 2 * grid_width - 1:step, :, 0:3].shape
 
     for i in range(-grid_width + 1, grid_width):
-        img[:, step + i:x - 2 * grid_width - 1:step, 0:3] = \
-            0.5 * img[:, step + i:x - 2 * grid_width - 1:step, 0:3] + 0.5 * 20 * np.ones([y, x_lines, 3])
-        img[step + i:y - 2 * grid_width - 1:step, :, 0:3] =  \
-            0.5 * img[step + i:y - 2 * grid_width - 1:step, :, 0:3] + 0.5 * 20 * np.ones([y_lines, x, 3])
-        grid[:, step + i:x - 2 * grid_width - 1:step, :] = \
-            np.concatenate([20 * np.ones([y, x_lines, 3]), 255 * np.ones([y, x_lines, 1])], 2)
-        grid[step + i:y - 2 * grid_width - 1:step, :, :] = \
-            np.concatenate([20 * np.ones([y_lines, x, 3]), 255 * np.ones([y_lines, x, 1])], 2)
+        img[:, x_grid_base_pos + i, 0:3] = 0.5 * img[:, x_grid_base_pos + i, 0:3] + 0.5 * x_grid_over_img
+        img[y_grid_base_pos + i, :, 0:3] = 0.5 * img[y_grid_base_pos + i, :, 0:3] + 0.5 * y_grid_over_img
+        grid[:, x_grid_base_pos + i, :] = x_grid_line_for_grid_img
+        grid[y_grid_base_pos + i, :, :] = y_grid_line_for_grid_img
+    img[:, :grid_width, 0:3] = 0.1 * img[:, :grid_width, 0:3] + 0.9 * x_border_over_img
+    img[:, x - grid_width:, 0:3] = 0.1 * img[:, x - grid_width:, 0:3] + 0.9 * x_border_over_img
+    img[:grid_width, :, 0:3] = 0.1 * img[:grid_width, :, 0:3] + 0.9 * y_border_over_img
+    img[y - grid_width:, :, 0:3] = 0.1 * img[y - grid_width:, :, 0:3] + 0.9 * y_border_over_img
+    grid[:, :grid_width, :] = x_border_for_grid_img
+    grid[:, x - grid_width:, :] = x_border_for_grid_img
+    grid[:grid_width, :, :] = y_border_for_grid_img
+    grid[y - grid_width:, :, :] = y_border_for_grid_img
 
     img = 255.0 * (img / 255.0)**(1 / 3.0)
     grid = 255.0 * (grid / 255.0)**(1 / 3.0)
