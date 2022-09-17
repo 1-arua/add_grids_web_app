@@ -105,3 +105,7 @@ def display_file():
 @app.route('/processed', methods=['GET'])
 def processed_file():
     return render_template("processed.html")
+
+
+if __name__ == "__main__":
+    app.run(host='0.0.0.0', port=8080)
