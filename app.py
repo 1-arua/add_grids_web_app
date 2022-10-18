@@ -15,65 +15,63 @@ app = Flask(__name__, static_folder="./templates/processed")
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 
-def add_grid(filename, num):
+def process(filename, num):
     img = np.array(Image.open(filename), dtype=np.float64)
-
     y, x, _ = img.shape
-    if x < y:
-        step = int(x / num)
-        x_grid_num = num - 1
-        y_grid_num = math.ceil(y / step) - 1
-        x_remainder = x % num
-        y_remainder = y - step * (y_grid_num + 1)
-    else:
-        step = int(y / num)
-        x_grid_num = math.ceil(x / step) - 1
-        y_grid_num = num - 1
-        x_remainder = x - step * (x_grid_num + 1)
-        y_remainder = y % num
+    a = 4000 // x if x < y else 4000 // y
+    b = a + 1
+    ratio = a if (4000 - a * min(x, y)) < (b * min(x, y) - 4000) else b
+    size = (y * ratio, x * ratio)
+    print(size)
 
-    grid_width = 4
+    enlarge_image(img, (size[1], size[0]))
+    create_grid(size, num)
+
+    os.remove(filename)
+
+
+def enlarge_image(img, size):
+    img = img.astype(np.uint8)
+    img = Image.fromarray(img)
+    img.resize(size, Image.BICUBIC).save(os.path.join("templates", "processed", "enlarged.png"), quality=95)
+
+
+def create_grid(size, num):
+    x, y = size[1], size[0]
+    standard_length = x if x < y else y
+    step = int(standard_length / num)
+    x_grid_num = num - 1 if x == standard_length else math.ceil(x / step) - 1
+    y_grid_num = num - 1 if y == standard_length else math.ceil(y / step) - 1
+    x_remainder = x % num if x == standard_length else x - step * (x_grid_num + 1)
+    y_remainder = y % num if y == standard_length else y - step * (y_grid_num + 1)
+
+    grid_width = step // 50
     grid = np.zeros([y, x, 4], dtype=np.float64)
 
     x_grid_base_pos = step * np.array(list(range(1, x_grid_num + 1))) + int(x_remainder / 2)
     y_grid_base_pos = step * np.array(list(range(1, y_grid_num + 1))) + int(y_remainder / 2)
 
-    x_grid_over_img = 20 * np.ones([y, x_grid_num, 3])
-    y_grid_over_img = 20 * np.ones([y_grid_num, x, 3])
     x_grid_line_for_grid_img = np.concatenate([20 * np.ones([y, x_grid_num, 3]), 255 * np.ones([y, x_grid_num, 1])], 2)
     y_grid_line_for_grid_img = np.concatenate([20 * np.ones([y_grid_num, x, 3]), 255 * np.ones([y_grid_num, x, 1])], 2)
-    x_border_over_img = 5 * np.ones([y, grid_width, 3])
-    y_border_over_img = 5 * np.ones([grid_width, x, 3])
     x_border_for_grid_img = np.concatenate(
         [20 * np.ones([y, grid_width, 3]), 255 * np.ones([y, grid_width, 1])], 2)
     y_border_for_grid_img = np.concatenate(
         [20 * np.ones([grid_width, x, 3]), 255 * np.ones([grid_width, x, 1])], 2)
 
     for i in range(-grid_width + 1, grid_width):
-        img[:, x_grid_base_pos + i, 0:3] = 0.5 * img[:, x_grid_base_pos + i, 0:3] + 0.5 * x_grid_over_img
-        img[y_grid_base_pos + i, :, 0:3] = 0.5 * img[y_grid_base_pos + i, :, 0:3] + 0.5 * y_grid_over_img
         grid[:, x_grid_base_pos + i, :] = x_grid_line_for_grid_img
         grid[y_grid_base_pos + i, :, :] = y_grid_line_for_grid_img
-    img[:, :grid_width, 0:3] = 0.1 * img[:, :grid_width, 0:3] + 0.9 * x_border_over_img
-    img[:, x - grid_width:, 0:3] = 0.1 * img[:, x - grid_width:, 0:3] + 0.9 * x_border_over_img
-    img[:grid_width, :, 0:3] = 0.1 * img[:grid_width, :, 0:3] + 0.9 * y_border_over_img
-    img[y - grid_width:, :, 0:3] = 0.1 * img[y - grid_width:, :, 0:3] + 0.9 * y_border_over_img
     grid[:, :grid_width, :] = x_border_for_grid_img
     grid[:, x - grid_width:, :] = x_border_for_grid_img
     grid[:grid_width, :, :] = y_border_for_grid_img
     grid[y - grid_width:, :, :] = y_border_for_grid_img
 
-    img = 255.0 * (img / 255.0)**(1 / 3.0)
     grid = 255.0 * (grid / 255.0)**(1 / 3.0)
 
-    img = img.astype(np.uint8)
     grid = grid.astype(np.uint8)
 
-    grided_filename = "grided.png"
     grid_filename = "grid.png"
-    Image.fromarray(img).save(os.path.join("templates", "processed", grided_filename), quality=95)
     Image.fromarray(grid).save(os.path.join("templates", "processed", grid_filename), quality=95)
-    os.remove(filename)
 
 
 def allowed_file(filename):
@@ -98,7 +96,7 @@ def display_file():
         filename = secure_filename(file.filename)
         file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
         grid_num = int(request.form.get("num"))
-        add_grid(os.path.join(app.config["UPLOAD_FOLDER"], filename), grid_num)
+        process(os.path.join(app.config["UPLOAD_FOLDER"], filename), grid_num)
         return redirect(url_for('processed_file'))
 
 
