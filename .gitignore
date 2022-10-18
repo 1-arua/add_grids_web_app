@@ -1,4 +1,6 @@
 __pycache__
 templates/processed/*
+!templates/processed/henohenomoheji.jpg
 uploads/*
-*.ini
+# *.ini
+*.python-version
