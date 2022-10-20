@@ -21,10 +21,10 @@ def process(filename, num):
     a = 4000 // x if x < y else 4000 // y
     b = a + 1
     ratio = a if (4000 - a * min(x, y)) < (b * min(x, y) - 4000) else b
-    size = (y * ratio, x * ratio)
+    size = (x * ratio, y * ratio)
     print(size)
 
-    enlarge_image(img, (size[1], size[0]))
+    enlarge_image(img, size)
     create_grid(size, num)
 
     os.remove(filename)
@@ -37,7 +37,7 @@ def enlarge_image(img, size):
 
 
 def create_grid(size, num):
-    x, y = size[1], size[0]
+    x, y = size[0], size[1]
     standard_length = x if x < y else y
     step = int(standard_length / num)
     x_grid_num = num - 1 if x == standard_length else math.ceil(x / step) - 1
