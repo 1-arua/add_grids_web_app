@@ -22,7 +22,6 @@ def process(filename, num):
     b = a + 1
     ratio = a if (4000 - a * min(x, y)) < (b * min(x, y) - 4000) else b
     size = (x * ratio, y * ratio)
-    print(size)
 
     enlarge_image(img, size)
     create_grid(size, num)
@@ -40,38 +39,35 @@ def create_grid(size, num):
     x, y = size[0], size[1]
     standard_length = x if x < y else y
     step = int(standard_length / num)
-    x_grid_num = num - 1 if x == standard_length else math.ceil(x / step) - 1
-    y_grid_num = num - 1 if y == standard_length else math.ceil(y / step) - 1
-    x_remainder = x % num if x == standard_length else x - step * (x_grid_num + 1)
-    y_remainder = y % num if y == standard_length else y - step * (y_grid_num + 1)
+    x_grid_num = num if x == standard_length else math.ceil(x / step)
+    y_grid_num = num if y == standard_length else math.ceil(y / step)
 
     grid_width = max(step // 50, 1)
-    grid = np.zeros([y, x, 4], dtype=np.float64)
+    grid = \
+        np.concatenate([20 * np.ones([y, x, 3], dtype=np.float64),
+                       255 * np.ones([y, x, 1], dtype=np.float64)], 2)
 
-    x_grid_base_pos = step * np.array(list(range(1, x_grid_num + 1))) + int(x_remainder / 2)
-    y_grid_base_pos = step * np.array(list(range(1, y_grid_num + 1))) + int(y_remainder / 2)
+    grid_unit = \
+        np.concatenate([20 * np.ones([step, step, 3], dtype=np.float64),
+                       255 * np.ones([step, step, 1], dtype=np.float64)], 2)
+    grid_unit[grid_width:step + 1 - grid_width, grid_width:step + 1 - grid_width, :] =\
+        np.zeros([step + 1 - 2 * grid_width, step + 1 - 2 * grid_width, 4], dtype=np.float64)
 
-    x_grid_line_for_grid_img = np.concatenate([20 * np.ones([y, x_grid_num, 3]), 255 * np.ones([y, x_grid_num, 1])], 2)
-    y_grid_line_for_grid_img = np.concatenate([20 * np.ones([y_grid_num, x, 3]), 255 * np.ones([y_grid_num, x, 1])], 2)
-    x_border_for_grid_img = np.concatenate(
-        [20 * np.ones([y, grid_width, 3]), 255 * np.ones([y, grid_width, 1])], 2)
-    y_border_for_grid_img = np.concatenate(
-        [20 * np.ones([grid_width, x, 3]), 255 * np.ones([grid_width, x, 1])], 2)
-
-    for i in range(-grid_width + 1, grid_width):
-        grid[:, x_grid_base_pos + i, :] = x_grid_line_for_grid_img
-        grid[y_grid_base_pos + i, :, :] = y_grid_line_for_grid_img
-    grid[:, :grid_width, :] = x_border_for_grid_img
-    grid[:, x - grid_width:, :] = x_border_for_grid_img
-    grid[:grid_width, :, :] = y_border_for_grid_img
-    grid[y - grid_width:, :, :] = y_border_for_grid_img
+    grid_inner = np.tile(grid_unit, (y_grid_num, x_grid_num, 1))
+    y2, x2, _ = grid_inner.shape
+    x_remainder = x2 - x
+    cut_off_x = grid_width + x_remainder // 2
+    y_remainder = y2 - y
+    cut_off_y = grid_width + y_remainder // 2
+    grid[grid_width:grid_width + y2 - 2 * cut_off_y, grid_width:grid_width + x2 - 2 * cut_off_x, :] = \
+        grid_inner[cut_off_y:y2 - cut_off_y, cut_off_x:x2 - cut_off_x, :]
 
     grid = 255.0 * (grid / 255.0)**(1 / 3.0)
 
     grid = grid.astype(np.uint8)
 
     grid_filename = "grid.png"
-    Image.fromarray(grid).save(os.path.join("templates", "processed", grid_filename), quality=95)
+    Image.fromarray(grid).save(os.path.join("templates", "processed", grid_filename), quality=80)
 
 
 def allowed_file(filename):
