@@ -45,7 +45,7 @@ def create_grid(size, num):
     x_remainder = x % num if x == standard_length else x - step * (x_grid_num + 1)
     y_remainder = y % num if y == standard_length else y - step * (y_grid_num + 1)
 
-    grid_width = step // 50
+    grid_width = max(step // 50, 1)
     grid = np.zeros([y, x, 4], dtype=np.float64)
 
     x_grid_base_pos = step * np.array(list(range(1, x_grid_num + 1))) + int(x_remainder / 2)
