@@ -55,9 +55,9 @@ def create_grid(size, num):
 
     grid_inner = np.tile(grid_unit, (y_grid_num, x_grid_num, 1))
     y2, x2, _ = grid_inner.shape
-    x_remainder = x2 - x
+    x_remainder = max(x2 - x, 0)
     cut_off_x = grid_width + x_remainder // 2
-    y_remainder = y2 - y
+    y_remainder = max(y2 - y, 0)
     cut_off_y = grid_width + y_remainder // 2
     grid[grid_width:grid_width + y2 - 2 * cut_off_y, grid_width:grid_width + x2 - 2 * cut_off_x, :] = \
         grid_inner[cut_off_y:y2 - cut_off_y, cut_off_x:x2 - cut_off_x, :]
